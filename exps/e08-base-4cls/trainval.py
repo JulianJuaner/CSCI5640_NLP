@@ -2,6 +2,8 @@ from flair.datasets import CONLL_03
 from flair.embeddings import WordEmbeddings, FlairEmbeddings, StackedEmbeddings
 from flair.models import SequenceTagger
 from flair.trainers import ModelTrainer
+from flair.visual.training_curves import Plotter
+# from conll03_shuf import CONLL_03_Shuf
 
 # 1. get the corpus
 corpus = CONLL_03()
@@ -34,7 +36,13 @@ tagger = SequenceTagger(hidden_size=256,
 trainer = ModelTrainer(tagger, corpus)
 
 # 7. start training
-trainer.train('resources/taggers/sota-ner-flair',
+trainer.train('exps/e08-base-4cls',
               learning_rate=0.1,
               mini_batch_size=32,
+              write_weights=True,
+              monitor_test=True,
               max_epochs=150)
+
+plotter = Plotter()
+plotter.plot_training_curves('exps/e08-base-4cls/loss.tsv')
+plotter.plot_weights('exps/e08-base-4cls/weights.txt')
