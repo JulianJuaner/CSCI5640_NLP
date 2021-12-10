@@ -125,7 +125,7 @@ class ColumnDataset_Shuf(ColumnDataset):
             encoding: str = "utf-8",
             skip_first_line: bool = False,
             label_name_map: Dict[str, str] = None,
-            shuf_percentage: float = 0.7,
+            shuf_percentage: float = 0.5,
     ):
         super(ColumnDataset_Shuf, self).__init__(
             path_to_column_file, column_name_map, tag_to_bioes, column_delimiter, comment_symbol, banned_sentences,
@@ -135,73 +135,104 @@ class ColumnDataset_Shuf(ColumnDataset):
             self.dictionary = json.load(f)
         # print(self.dictionary)
         self.shuf_percentage = shuf_percentage
+        self.iter=0
+        self.max_iter=len(self)*100
 
 
     def __getitem__(self, index: int = 0) -> Sentence:
-
+        
+        self.iter += 1
+        shuf_percentage = self.shuf_percentage*(0.01 + 0.99*(1 - min(1, self.iter/self.max_iter)))
         # if in memory, retrieve parsed sentence
         if self.in_memory:
             sentence = self.sentences[index]
-    
+
+        if self.iter%1000 == 0:
+            log.info("shuf percentage at iter {}: {}".format(iter, shuf_percentage))
+
         # else skip to position in file where sentence begins
         else:
             with open(str(self.path_to_column_file), encoding=self.encoding) as file:
                 file.seek(self.indices[index])
-                if random.random() < self.shuf_percentage:
-                    # DONE: shuffle sentence.
-                    line = self._read_next_sentence(file)
-                    new_line = []
-                    prev_words = []
-                    prev_attr = "O"
-                    padding_attr = " NNP I-NP "
+                # DONE: shuffle sentence.
+                line = self._read_next_sentence(file)
+                new_line = []
+                prev_words = []
+                prev_attr = "O"
+                padding_attr = " NNP I-NP "
 
-                    for idx, word_line in enumerate(line):
-                        word_attr = word_line.strip().split(" ")
-                        if len(word_attr) == 4 and word_attr[-1] != "O":
-                            word = word_attr[0]
-                            attr = word_attr[-1].split("-")[-1]
-                        
-                            if prev_attr == attr:
-                                if prev_words != []:
-                                    prev_words += [word_line]
-                                else:
-                                    prev_words += [word_line]
-                            else:
-                                prev_words += [word_line]
-                            prev_attr = attr
-
-                        else:
-                            # if the word is not valid, release previous words.
+                for idx, word_line in enumerate(line):
+                    word_attr = word_line.strip().split(" ")
+                    if len(word_attr) == 4 and word_attr[-1] != "O":
+                        if word_attr[-1].split('-')[0] != "I":
                             if prev_words != []:
-                                # still having probability to be not changed (else part)
-                                if random.random() < self.shuf_percentage:
+                                prev_words += [word_line]
+                                
+                                if random.random() < shuf_percentage:
                                     new_words = random.sample(self.dictionary[prev_attr], 1)[0]
                                     new_words = new_words.split(" ")
-                                    # log.info(new_words)
-                                    for new_word in new_words:
-                                        new_word = new_word + padding_attr + "I-" + prev_attr + "\n"
+                                    
+                                    for i, new_word in enumerate(new_words):
+                                        if i == 0:
+                                            new_word = new_word + padding_attr + "B-" + prev_attr + "\n"
+                                        else:
+                                            new_word = new_word + padding_attr + "I-" + prev_attr + "\n"
                                         new_line += [new_word]
                                 else:
                                     for prev_word in prev_words:
                                         new_line += [prev_word]
 
-                            new_line += [word_line]
-                            prev_attr = "O"
-                            prev_words = []
-
-                    # at last, if there exist a prev_word, do same thing.
-                    if prev_words != []:
-                        # still having probability to be not changed (else part)
-                        if random.random() < self.shuf_percentage:
-                            new_words = random.sample(self.dictionary[prev_attr], 1)[0]
-                            new_words = new_words.split(" ")
-                            # log.info(new_words)
-                            for new_word in new_words:
-                                new_word = new_word + padding_attr + "I-" + prev_attr + "\n"
-                                new_line += [new_word]
+                        word = word_attr[0]
+                        attr = word_attr[-1].split("-")[-1]
+                        
+                        if prev_attr == attr:
+                            if prev_words != []:
+                                prev_words += [word_line]
+                            else:
+                                prev_words += [word_line]
                         else:
-                            for prev_word in prev_words:
-                                new_line += [prev_word]
+                            prev_words += [word_line]
+                        prev_attr = attr
+
+
+                    else:
+                        # if the word is not valid, release previous words.
+                        if prev_words != []:
+                            # still having probability to be not changed (else part)
+                            if random.random() < shuf_percentage:
+                                new_words = random.sample(self.dictionary[prev_attr], 1)[0]
+                                new_words = new_words.split(" ")
+                                # log.info(new_words)
+                                for i, new_word in enumerate(new_words):
+                                    if i == 0:
+                                        new_word = new_word + padding_attr + "B-" + prev_attr + "\n"
+                                    else:
+                                        new_word = new_word + padding_attr + "I-" + prev_attr + "\n"
+                                    new_line += [new_word]
+                            else:
+                                for prev_word in prev_words:
+                                    new_line += [prev_word]
+
+                        new_line += [word_line]
+                        prev_attr = "O"
+                        prev_words = []
+
+                # at last, if there exist a prev_word, do same thing.
+                if prev_words != []:
+                    # still having probability to be not changed (else part)
+                    if random.random() < shuf_percentage:
+                        new_words = random.sample(self.dictionary[prev_attr], 1)[0]
+                        new_words = new_words.split(" ")
+                        # log.info(new_words)
+                        for i, new_word in enumerate(new_words):
+                            if i == 0:
+                                new_word = new_word + padding_attr + "B-" + prev_attr + "\n"
+                            else:
+                                new_word = new_word + padding_attr + "I-" + prev_attr + "\n"
+                            new_line += [new_word]
+                    else:
+                        for prev_word in prev_words:
+                            new_line += [prev_word]
 
                     # visualization
                     # str_ori = ' '.join([x.split(" ")[0] for x in line])
@@ -209,10 +240,7 @@ class ColumnDataset_Shuf(ColumnDataset):
                     # log.info("ORIGINAL: " + str_ori)
                     # log.info("NEW_LINE: " + str_new)
 
-                    sentence = self._convert_lines_to_sentence(new_line)
-                    # log.info(sentence)
-                else:
-                    sentence = self._convert_lines_to_sentence(self._read_next_sentence(file))
+                sentence = self._convert_lines_to_sentence(new_line)
 
             # set sentence context using partials
             sentence._position_in_dataset = (self, index)

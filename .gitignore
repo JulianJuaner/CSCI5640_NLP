@@ -5,3 +5,5 @@ flair/resources/taggers
 *.txt
 *.tsv
 *.pyc
+*.json
+eng*

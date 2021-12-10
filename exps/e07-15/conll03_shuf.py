@@ -26,7 +26,7 @@ class MultiFileColumnCorpus(Corpus):
             encoding: str = "utf-8",
             document_separator_token: str = None,
             skip_first_line: bool = False,
-            in_memory: bool = True,
+            in_memory: bool = False,
             label_name_map: Dict[str, str] = None,
             banned_sentences: List[str] = None,
             **corpusargs,
@@ -67,7 +67,7 @@ class MultiFileColumnCorpus(Corpus):
 
         # read in dev file if exists
         dev = ConcatDataset([
-            ColumnDataset_Shuf(
+            ColumnDataset(
                 dev_file,
                 column_format,
                 tag_to_bioes,
@@ -120,12 +120,12 @@ class ColumnDataset_Shuf(ColumnDataset):
             column_delimiter: str = r"\s+",
             comment_symbol: str = None,
             banned_sentences: List[str] = None,
-            in_memory: bool = True,
+            in_memory: bool = False,
             document_separator_token: str = None,
             encoding: str = "utf-8",
             skip_first_line: bool = False,
             label_name_map: Dict[str, str] = None,
-            shuf_percentage: float = 0.0,
+            shuf_percentage: float = 0.15,
     ):
         super(ColumnDataset_Shuf, self).__init__(
             path_to_column_file, column_name_map, tag_to_bioes, column_delimiter, comment_symbol, banned_sentences,
@@ -141,17 +141,75 @@ class ColumnDataset_Shuf(ColumnDataset):
 
         # if in memory, retrieve parsed sentence
         if self.in_memory:
-
             sentence = self.sentences[index]
-            sentence.convert_tag_scheme(
-                            tag_type=self.tag_to_bioes, target_scheme="i-only"
-                        )
     
         # else skip to position in file where sentence begins
         else:
             with open(str(self.path_to_column_file), encoding=self.encoding) as file:
                 file.seek(self.indices[index])
-                sentence = self._convert_lines_to_sentence(self._read_next_sentence(file))
+                
+                # DONE: shuffle sentence.
+                line = self._read_next_sentence(file)
+                new_line = []
+                prev_words = []
+                prev_attr = "O"
+                padding_attr = " NNP I-NP "
+
+                for idx, word_line in enumerate(line):
+                    word_attr = word_line.strip().split(" ")
+                    if len(word_attr) == 4 and word_attr[-1] != "O":
+                        word = word_attr[0]
+                        attr = word_attr[-1].split("-")[-1]
+                    
+                        if prev_attr == attr:
+                            if prev_words != []:
+                                prev_words += [word_line]
+                            else:
+                                prev_words += [word_line]
+                        else:
+                            prev_words += [word_line]
+                        prev_attr = attr
+
+                    else:
+                        # if the word is not valid, release previous words.
+                        if prev_words != []:
+                            # still having probability to be not changed (else part)
+                            if random.random() < self.shuf_percentage:
+                                new_words = random.sample(self.dictionary[prev_attr], 1)[0]
+                                new_words = new_words.split(" ")
+                                # log.info(new_words)
+                                for new_word in new_words:
+                                    new_word = new_word + padding_attr + "I-" + prev_attr + "\n"
+                                    new_line += [new_word]
+                            else:
+                                for prev_word in prev_words:
+                                    new_line += [prev_word]
+
+                        new_line += [word_line]
+                        prev_attr = "O"
+                        prev_words = []
+
+                # at last, if there exist a prev_word, do same thing.
+                if prev_words != []:
+                    # still having probability to be not changed (else part)
+                    if random.random() < self.shuf_percentage:
+                        new_words = random.sample(self.dictionary[prev_attr], 1)[0]
+                        new_words = new_words.split(" ")
+                        # log.info(new_words)
+                        for new_word in new_words:
+                            new_word = new_word + padding_attr + "I-" + prev_attr + "\n"
+                            new_line += [new_word]
+                    else:
+                        for prev_word in prev_words:
+                            new_line += [prev_word]
+
+                    # visualization
+                    # str_ori = ' '.join([x.split(" ")[0] for x in line])
+                    # str_new = ' '.join([x.split(" ")[0] for x in new_line])
+                    # log.info("ORIGINAL: " + str_ori)
+                    # log.info("NEW_LINE: " + str_new)
+
+                sentence = self._convert_lines_to_sentence(new_line)
 
             # set sentence context using partials
             sentence._position_in_dataset = (self, index)
@@ -159,12 +217,12 @@ class ColumnDataset_Shuf(ColumnDataset):
         return sentence
 
 
-class CONLL_03_shuf_bkp(ColumnCorpus):
+class CONLL_03_Shuf(ColumnCorpus):
     def __init__(
             self,
             base_path: Union[str, Path] = None,
             tag_to_bioes: str = "ner",
-            in_memory: bool = True,
+            in_memory: bool = False,
             **corpusargs,
     ):
         """
@@ -193,7 +251,7 @@ class CONLL_03_shuf_bkp(ColumnCorpus):
             )
             log.warning("-" * 100)
 
-        super(CONLL_03_shuf_bkp, self).__init__(
+        super(CONLL_03_Shuf, self).__init__(
             data_folder,
             columns,
             tag_to_bioes=tag_to_bioes,
@@ -204,7 +262,7 @@ class CONLL_03_shuf_bkp(ColumnCorpus):
 
 # from torch.utils.data.dataloader import DataLoader
 if __name__ == "__main__":
-    data = CONLL_03_shuf_bkp("/research/d4/gds/yczhang21/project/CSCI5640_NLP")
+    data = CONLL_03_Shuf("/research/d4/gds/yczhang21/project/CSCI5640_NLP")
     print(data.train)
     dataloader = DataLoader(data.train)
     iter = 0
