@@ -13,7 +13,7 @@ from flair.models import SequenceTagger
 from flair.trainers import ModelTrainer
 from torch.optim.lr_scheduler import OneCycleLR
 
-corpus: Corpus = CONLL_03('./')
+corpus: Corpus = CONLL_03('../')
 tag_type = 'ner'
 tag_dictionary = corpus.make_tag_dictionary(tag_type=tag_type)
 

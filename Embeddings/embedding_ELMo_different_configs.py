@@ -9,7 +9,7 @@ PIC for this file: XING, Jinbo (JinboXING@link.cuhk.edu.hk)
 
 import torch
 from flair.datasets import CONLL_03
-corpus = CONLL_03('./')
+corpus = CONLL_03('../')
 tag_type = 'ner'
 tag_dictionary = corpus.make_tag_dictionary(tag_type=tag_type)
 
