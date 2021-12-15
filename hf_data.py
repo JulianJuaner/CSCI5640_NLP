@@ -27,23 +27,23 @@ def json_load():
     with open("hf_dataset.json", 'r') as f:
         d = json.load(f)
     padding = " NNP I-NP "
-    with open("hf_dataset.train", 'w') as f:
+    with open("eng.train", 'w') as f:
         for item in tqdm(d['train']):
             for id, token in enumerate(item['tokens']):
                 new_line = token + padding + names[item['ner_tags'][id]] + '\n'
                 f.write(new_line)
             f.write("\n")
-    with open("hf_dataset.testa", 'w') as f:
+    with open("eng.testa", 'w') as f:
         for item in tqdm(d['validation']):
             for id, token in enumerate(item['tokens']):
                 new_line = token + padding + names[item['ner_tags'][id]] + '\n'
                 f.write(new_line)
             f.write("\n")
-    with open("hf_dataset.testb", 'w') as f:
+    with open("eng.testb", 'w') as f:
         for item in tqdm(d['test']):
             for id, token in enumerate(item['tokens']):
                 new_line = token + padding + names[item['ner_tags'][id]] + '\n'
                 f.write(new_line)
             f.write("\n")
-
+json_save()
 json_load()
