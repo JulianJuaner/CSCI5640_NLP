@@ -3,7 +3,8 @@
 ### XING JInbo, LU Fanbin, ZHANG Yuechen
 #### For FULL version of the code, please refer to [this site](https://github.com/JulianJuaner/CSCI5640_NLP).
 #### This branch only includes main results in the report. For full experiments, please refer to other branches (julian/jinbo) of this repository. Feel free to tell us if you have any questions.
-***
+<br>
+
 # Data Preprocessing
 You can download CoNLL03 dataset from huggingface, or the official website. If you are using the huggingface format, you can convert the data to corpus by:
 ```
@@ -14,9 +15,11 @@ To enable our data augmentation, you need to generate the dictionary (train_dict
 python corpus_ner_dict.py
 ```
 Then you need to move it into its flair cache locations.
-***
+<br>
+<br>
+
 # Training
-For following training scripts, please use the flair in this repository because we modified it in the expreriments. You can global search keyword 'MODIFIED' to see what we have done in the original codebase.
+For following training scripts, please use the flair in this repository because we modified it in the expreriments. You can global search keyword **"MODIFIED"** to see what we have done in the original codebase.
 
 ```
 export PYTHONPATH=/.../CSCI5640_NLP/flair:$PYTHONPATH
