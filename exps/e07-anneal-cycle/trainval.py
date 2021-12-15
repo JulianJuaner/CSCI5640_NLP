@@ -36,14 +36,14 @@ tagger = SequenceTagger(hidden_size=256,
 trainer = ModelTrainer(tagger, corpus)
 
 # 7. start training
-trainer.train('exps/e07-anneal',
+trainer.train('exps/e07-anneal-cycle',
               learning_rate=0.1,
               mini_batch_size=32,
               write_weights=True,
               monitor_test=True,
-              patience=8,
+              patience=6,
               max_epochs=150)
 
 plotter = Plotter()
-plotter.plot_training_curves('exps/e07-anneal/loss.tsv')
-plotter.plot_weights('exps/e07-anneal/weights.txt')
+plotter.plot_training_curves('exps/e07-anneal-cycle/loss.tsv')
+plotter.plot_weights('exps/e07-anneal-cycle/weights.txt')

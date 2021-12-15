@@ -159,7 +159,7 @@ class ColumnDataset_Shuf(ColumnDataset):
         return sentence
 
 
-class CONLL_03_shuf_bkp(ColumnCorpus):
+class CONLL_03_shuf(ColumnCorpus):
     def __init__(
             self,
             base_path: Union[str, Path] = None,
@@ -193,7 +193,7 @@ class CONLL_03_shuf_bkp(ColumnCorpus):
             )
             log.warning("-" * 100)
 
-        super(CONLL_03_shuf_bkp, self).__init__(
+        super(CONLL_03_shuf, self).__init__(
             data_folder,
             columns,
             tag_to_bioes=tag_to_bioes,

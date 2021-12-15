@@ -41,6 +41,7 @@ trainer.train('exps/e07-anneal-rev',
               mini_batch_size=32,
               write_weights=True,
               monitor_test=True,
+              patience=8,
               max_epochs=150)
 
 plotter = Plotter()

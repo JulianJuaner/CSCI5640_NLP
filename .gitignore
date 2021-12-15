@@ -6,4 +6,5 @@ flair/resources/taggers
 *.tsv
 *.pyc
 *.json
+*.out
 eng*

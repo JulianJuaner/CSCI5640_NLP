@@ -118,12 +118,18 @@ class ConcatDataset_cust(ConcatDataset):
     def set_epoch(self, epoch):
         for dataset in self.datasets:
             dataset.epoch = epoch
-            shuf_percentage = dataset.shuf_percentage*(0.01 + 0.99*(1 - min(1, dataset.epoch/dataset.total_epoch)))
-            log.info("shuf percentage at epoch {}: {}".format(dataset.epoch, shuf_percentage))
+            if dataset.epoch < dataset.total_epoch:
+                shuf_percentage = dataset.shuf_percentage*(dataset.epoch/dataset.total_epoch)
+            elif dataset.epoch < dataset.total_epoch*2:
+                shuf_percentage = dataset.shuf_percentage*((1 - (dataset.epoch - dataset.total_epoch)/dataset.total_epoch))
+            else:
+                shuf_percentage = 0.01
+
+            log.info("shuf percentage at epoch {}/{}: {}".format(dataset.epoch, dataset.total_epoch, shuf_percentage))
 
     def set_total_epoch(self, total_epoch):
         for dataset in self.datasets:
-            dataset.total_epoch = total_epoch
+            dataset.total_epoch = 30
 
 class ColumnDataset_Shuf(ColumnDataset):
     # special key for space after
@@ -153,18 +159,30 @@ class ColumnDataset_Shuf(ColumnDataset):
         # print(self.dictionary)
         self.shuf_percentage = shuf_percentage
         self.epoch=0
-        self.total_epoch=1
+        self.total_epoch=30
 
     def set_epoch(self, epoch):
         self.epoch = epoch
-        shuf_percentage = self.shuf_percentage*(0.01 + 0.99*(1 - min(1, 3*self.epoch/self.total_epoch)))
-        log.info("shuf percentage at epoch {}: {}".format(self.epoch, shuf_percentage))
+        if self.epoch < self.total_epoch:
+            shuf_percentage = self.shuf_percentage*(self.epoch/self.total_epoch)
+        elif self.epoch < self.total_epoch*2:
+            shuf_percentage = self.shuf_percentage*((1 - (self.epoch - self.total_epoch)/self.total_epoch))
+        else:
+            shuf_percentage = 0.01
+
+        log.info("shuf percentage at epoch {}/{}: {}".format(self.epoch, self.total_epoch, shuf_percentage))
 
     def set_total_epoch(self, total_epoch):
-        self.total_epoch = total_epoch
+        return
+        # self.total_epoch = total_epoch
 
     def __getitem__(self, index: int = 0) -> Sentence:
-        shuf_percentage = self.shuf_percentage*(0.01 + 0.99*(1 - min(1, 3*self.epoch/self.total_epoch)))
+        if self.epoch < self.total_epoch:
+            shuf_percentage = self.shuf_percentage*((min(1, self.epoch/self.total_epoch)))
+        elif self.epoch < self.total_epoch*2:
+             shuf_percentage = self.shuf_percentage*((1 - min(1, (self.epoch - self.total_epoch)/self.total_epoch)))
+        else:
+            shuf_percentage = 0.01
 
         # if in memory, retrieve parsed sentence
         if self.in_memory:

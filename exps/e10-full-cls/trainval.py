@@ -1,12 +1,11 @@
-# from flair.datasets import CONLL_03
+from conll03_shuf import CONLL_03_shuf
 from flair.embeddings import WordEmbeddings, FlairEmbeddings, StackedEmbeddings
-from flair.models import SequenceTagger
-from trainer import ModelTrainer
+from sequence_tagger_model import SequenceTagger
+from flair.trainers import ModelTrainer
 from flair.visual.training_curves import Plotter
-from conll03_shuf import CONLL_03_Shuf
 
 # 1. get the corpus
-corpus = CONLL_03_Shuf("/research/d4/gds/yczhang21/project/CSCI5640_NLP")
+corpus = CONLL_03_shuf("/research/d4/gds/yczhang21/project/CSCI5640_NLP")
 print(corpus)
 
 # 2. what label do we want to predict?
@@ -36,14 +35,13 @@ tagger = SequenceTagger(hidden_size=256,
 trainer = ModelTrainer(tagger, corpus)
 
 # 7. start training
-trainer.train('exps/e07-anneal',
+trainer.train('exps/e10-full-cls',
               learning_rate=0.1,
               mini_batch_size=32,
               write_weights=True,
               monitor_test=True,
-              patience=8,
               max_epochs=150)
 
 plotter = Plotter()
-plotter.plot_training_curves('exps/e07-anneal/loss.tsv')
-plotter.plot_weights('exps/e07-anneal/weights.txt')
+plotter.plot_training_curves('exps/e10-full-cls/loss.tsv')
+plotter.plot_weights('exps/e10-full-cls/weights.txt')

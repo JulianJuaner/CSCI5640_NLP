@@ -1,11 +1,11 @@
-from flair.datasets import CONLL_03
+from datasets import CONLL_03_shuf
 from flair.embeddings import WordEmbeddings, FlairEmbeddings, StackedEmbeddings
 from flair.models import SequenceTagger
 from flair.trainers import ModelTrainer
 from flair.visual.training_curves import Plotter
 
 # 1. get the corpus
-corpus = CONLL_03()
+corpus = CONLL_03_shuf("/research/d4/gds/yczhang21/project/CSCI5640_NLP")
 print(corpus)
 
 # 2. what label do we want to predict?

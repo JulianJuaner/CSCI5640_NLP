@@ -26,13 +26,13 @@ class MultiFileColumnCorpus(Corpus):
             encoding: str = "utf-8",
             document_separator_token: str = None,
             skip_first_line: bool = False,
-            in_memory: bool = False,
+            in_memory: bool = True,
             label_name_map: Dict[str, str] = None,
             banned_sentences: List[str] = None,
             **corpusargs,
     ):
         # get train data
-        train = ConcatDataset_cust([
+        train = ConcatDataset([
             ColumnDataset_Shuf(
                 train_file,
                 column_format,
@@ -49,8 +49,8 @@ class MultiFileColumnCorpus(Corpus):
         ]) if train_files and train_files[0] else None
 
         # read in test file if exists
-        test = ConcatDataset_cust([
-            ColumnDataset(
+        test = ConcatDataset([
+            ColumnDataset_Shuf(
                 test_file,
                 column_format,
                 tag_to_bioes,
@@ -66,8 +66,8 @@ class MultiFileColumnCorpus(Corpus):
         ]) if test_files and test_files[0] else None
 
         # read in dev file if exists
-        dev = ConcatDataset_cust([
-            ColumnDataset(
+        dev = ConcatDataset([
+            ColumnDataset_Shuf(
                 dev_file,
                 column_format,
                 tag_to_bioes,
@@ -108,23 +108,6 @@ class ColumnCorpus(MultiFileColumnCorpus):
             **corpusargs
         )
 
-class ConcatDataset_cust(ConcatDataset):
-    def __init__(self, datasets) -> None:
-        super(ConcatDataset_cust, self).__init__(datasets)
-        self.epoch=0
-        self.total_epoch=1
-        
-
-    def set_epoch(self, epoch):
-        for dataset in self.datasets:
-            dataset.epoch = epoch
-            shuf_percentage = dataset.shuf_percentage*(0.01 + 0.99*(1 - min(1, dataset.epoch/dataset.total_epoch)))
-            log.info("shuf percentage at epoch {}: {}".format(dataset.epoch, shuf_percentage))
-
-    def set_total_epoch(self, total_epoch):
-        for dataset in self.datasets:
-            dataset.total_epoch = total_epoch
-
 class ColumnDataset_Shuf(ColumnDataset):
     # special key for space after
     SPACE_AFTER_KEY = "space-after"
@@ -137,12 +120,12 @@ class ColumnDataset_Shuf(ColumnDataset):
             column_delimiter: str = r"\s+",
             comment_symbol: str = None,
             banned_sentences: List[str] = None,
-            in_memory: bool = False,
+            in_memory: bool = True,
             document_separator_token: str = None,
             encoding: str = "utf-8",
             skip_first_line: bool = False,
             label_name_map: Dict[str, str] = None,
-            shuf_percentage: float = 0.5,
+            shuf_percentage: float = 0.0,
     ):
         super(ColumnDataset_Shuf, self).__init__(
             path_to_column_file, column_name_map, tag_to_bioes, column_delimiter, comment_symbol, banned_sentences,
@@ -152,120 +135,41 @@ class ColumnDataset_Shuf(ColumnDataset):
             self.dictionary = json.load(f)
         # print(self.dictionary)
         self.shuf_percentage = shuf_percentage
-        self.epoch=0
-        self.total_epoch=1
 
-    def set_epoch(self, epoch):
-        self.epoch = epoch
-        shuf_percentage = self.shuf_percentage*(0.01 + 0.99*(1 - min(1, 3*self.epoch/self.total_epoch)))
-        log.info("shuf percentage at epoch {}: {}".format(self.epoch, shuf_percentage))
-
-    def set_total_epoch(self, total_epoch):
-        self.total_epoch = total_epoch
 
     def __getitem__(self, index: int = 0) -> Sentence:
-        shuf_percentage = self.shuf_percentage*(0.01 + 0.99*(1 - min(1, 3*self.epoch/self.total_epoch)))
 
         # if in memory, retrieve parsed sentence
         if self.in_memory:
+
             sentence = self.sentences[index]
+            sentence.cal_entity_relation()
+            # sentence.convert_tag_scheme(
+            #                 tag_type=self.tag_to_bioes, target_scheme="i-only"
+            #             )
+    
         # else skip to position in file where sentence begins
         else:
             with open(str(self.path_to_column_file), encoding=self.encoding) as file:
                 file.seek(self.indices[index])
-                # DONE: shuffle sentence.
-                line = self._read_next_sentence(file)
-                new_line = []
-                prev_words = []
-                prev_attr = "O"
-                padding_attr = " NNP I-NP "
-
-                for idx, word_line in enumerate(line):
-                    word_attr = word_line.strip().split(" ")
-                    if len(word_attr) == 4 and word_attr[-1] != "O":
-                        if word_attr[-1].split('-')[0] != "I":
-                            if prev_words != []:
-                                if random.random() < shuf_percentage:
-                                    new_words = random.sample(self.dictionary[prev_attr], 1)[0]
-                                    new_words = new_words.split(" ")
-                                    
-                                    for i, new_word in enumerate(new_words):
-                                        if i == 0:
-                                            new_word = new_word + padding_attr + "B-" + prev_attr + "\n"
-                                        else:
-                                            new_word = new_word + padding_attr + "I-" + prev_attr + "\n"
-                                        new_line += [new_word]
-                                else:
-                                    for prev_word in prev_words:
-                                        new_line += [prev_word]
-
-                            prev_words = []
-
-                        attr = word_attr[-1].split("-")[-1]
-                        
-                        prev_words += [word_line]
-                        prev_attr = attr
-
-
-                    else:
-                        # if the word is not valid, release previous words.
-                        if prev_words != []:
-                            # still having probability to be not changed (else part)
-                            if random.random() < shuf_percentage:
-                                new_words = random.sample(self.dictionary[prev_attr], 1)[0]
-                                new_words = new_words.split(" ")
-                                # log.info(new_words)
-                                for i, new_word in enumerate(new_words):
-                                    if i == 0:
-                                        new_word = new_word + padding_attr + "B-" + prev_attr + "\n"
-                                    else:
-                                        new_word = new_word + padding_attr + "I-" + prev_attr + "\n"
-                                    new_line += [new_word]
-                            else:
-                                for prev_word in prev_words:
-                                    new_line += [prev_word]
-
-                        new_line += [word_line]
-                        prev_attr = "O"
-                        prev_words = []
-
-                # at last, if there exist a prev_word, do same thing.
-                if prev_words != []:
-                    # still having probability to be not changed (else part)
-                    if random.random() < shuf_percentage:
-                        new_words = random.sample(self.dictionary[prev_attr], 1)[0]
-                        new_words = new_words.split(" ")
-                        # log.info(new_words)
-                        for i, new_word in enumerate(new_words):
-                            if i == 0:
-                                new_word = new_word + padding_attr + "B-" + prev_attr + "\n"
-                            else:
-                                new_word = new_word + padding_attr + "I-" + prev_attr + "\n"
-                            new_line += [new_word]
-                    else:
-                        for prev_word in prev_words:
-                            new_line += [prev_word]
-
-                    # visualization
-                    # str_ori = ' '.join([x.split(" ")[0] for x in line])
-                    # str_new = ' '.join([x.split(" ")[0] for x in new_line])
-                    # log.info("ORIGINAL: " + str_ori)
-                    # log.info("NEW_LINE: " + str_new)
-
-                sentence = self._convert_lines_to_sentence(new_line)
+                sentence = self._convert_lines_to_sentence(self._read_next_sentence(file))
 
             # set sentence context using partials
+            sentence.cal_entity_relation()
             sentence._position_in_dataset = (self, index)
+            # sentence.convert_tag_scheme(
+            #                 tag_type=self.tag_to_bioes, target_scheme="i-only"
+            #             )
 
         return sentence
 
 
-class CONLL_03_Shuf(ColumnCorpus):
+class CONLL_03_shuf(ColumnCorpus):
     def __init__(
             self,
             base_path: Union[str, Path] = None,
             tag_to_bioes: str = "ner",
-            in_memory: bool = False,
+            in_memory: bool = True,
             **corpusargs,
     ):
         """
@@ -294,7 +198,7 @@ class CONLL_03_Shuf(ColumnCorpus):
             )
             log.warning("-" * 100)
 
-        super(CONLL_03_Shuf, self).__init__(
+        super(CONLL_03_shuf, self).__init__(
             data_folder,
             columns,
             tag_to_bioes=tag_to_bioes,
@@ -305,7 +209,7 @@ class CONLL_03_Shuf(ColumnCorpus):
 
 # from torch.utils.data.dataloader import DataLoader
 if __name__ == "__main__":
-    data = CONLL_03_Shuf("/research/d4/gds/yczhang21/project/CSCI5640_NLP")
+    data = CONLL_03_shuf("/research/d4/gds/yczhang21/project/CSCI5640_NLP")
     print(data.train)
     dataloader = DataLoader(data.train)
     iter = 0

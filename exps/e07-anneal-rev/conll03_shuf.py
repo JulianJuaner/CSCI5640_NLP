@@ -118,7 +118,7 @@ class ConcatDataset_cust(ConcatDataset):
     def set_epoch(self, epoch):
         for dataset in self.datasets:
             dataset.epoch = epoch
-            shuf_percentage = dataset.shuf_percentage*(0.01 + 0.99*(1 - min(1, dataset.epoch/dataset.total_epoch)))
+            shuf_percentage = dataset.shuf_percentage*(0.01 + 0.99*(min(1, dataset.epoch/dataset.total_epoch)))
             log.info("shuf percentage at epoch {}: {}".format(dataset.epoch, shuf_percentage))
 
     def set_total_epoch(self, total_epoch):
@@ -156,15 +156,15 @@ class ColumnDataset_Shuf(ColumnDataset):
         self.total_epoch=1
 
     def set_epoch(self, epoch):
-        self.epoch += epoch
-        shuf_percentage = self.shuf_percentage*(0.01 + 0.99*(1 - min(1, self.epoch/self.total_epoch)))
+        self.epoch = epoch
+        shuf_percentage = self.shuf_percentage*(0.01 + 0.99*(min(1, self.epoch/self.total_epoch)))
         log.info("shuf percentage at epoch {}: {}".format(self.epoch, shuf_percentage))
 
     def set_total_epoch(self, total_epoch):
         self.total_epoch = total_epoch
 
     def __getitem__(self, index: int = 0) -> Sentence:
-        shuf_percentage = self.shuf_percentage*(0.01 + 0.99*(1 - min(1, self.epoch/self.total_epoch)))
+        shuf_percentage = self.shuf_percentage*(0.01 + 0.99*(min(1, self.epoch/self.total_epoch)))
         # if in memory, retrieve parsed sentence
         if self.in_memory:
             sentence = self.sentences[index]
@@ -184,8 +184,6 @@ class ColumnDataset_Shuf(ColumnDataset):
                     if len(word_attr) == 4 and word_attr[-1] != "O":
                         if word_attr[-1].split('-')[0] != "I":
                             if prev_words != []:
-                                prev_words += [word_line]
-                                
                                 if random.random() < shuf_percentage:
                                     new_words = random.sample(self.dictionary[prev_attr], 1)[0]
                                     new_words = new_words.split(" ")
@@ -200,16 +198,11 @@ class ColumnDataset_Shuf(ColumnDataset):
                                     for prev_word in prev_words:
                                         new_line += [prev_word]
 
-                        word = word_attr[0]
+                            prev_words = []
+
                         attr = word_attr[-1].split("-")[-1]
                         
-                        if prev_attr == attr:
-                            if prev_words != []:
-                                prev_words += [word_line]
-                            else:
-                                prev_words += [word_line]
-                        else:
-                            prev_words += [word_line]
+                        prev_words += [word_line]
                         prev_attr = attr
 
 
@@ -251,12 +244,6 @@ class ColumnDataset_Shuf(ColumnDataset):
                     else:
                         for prev_word in prev_words:
                             new_line += [prev_word]
-
-                    # visualization
-                    # str_ori = ' '.join([x.split(" ")[0] for x in line])
-                    # str_new = ' '.join([x.split(" ")[0] for x in new_line])
-                    # log.info("ORIGINAL: " + str_ori)
-                    # log.info("NEW_LINE: " + str_new)
 
                 sentence = self._convert_lines_to_sentence(new_line)
 

@@ -118,7 +118,7 @@ class ConcatDataset_cust(ConcatDataset):
     def set_epoch(self, epoch):
         for dataset in self.datasets:
             dataset.epoch = epoch
-            shuf_percentage = dataset.shuf_percentage*(0.01 + 0.99*(1 - min(1, dataset.epoch/dataset.total_epoch)))
+            shuf_percentage = dataset.shuf_percentage*((1 - min(1, 2*dataset.epoch/dataset.total_epoch)))
             log.info("shuf percentage at epoch {}: {}".format(dataset.epoch, shuf_percentage))
 
     def set_total_epoch(self, total_epoch):
@@ -157,14 +157,14 @@ class ColumnDataset_Shuf(ColumnDataset):
 
     def set_epoch(self, epoch):
         self.epoch = epoch
-        shuf_percentage = self.shuf_percentage*(0.01 + 0.99*(1 - min(1, 3*self.epoch/self.total_epoch)))
+        shuf_percentage = self.shuf_percentage*((1 - min(1, 2*self.epoch/self.total_epoch)))
         log.info("shuf percentage at epoch {}: {}".format(self.epoch, shuf_percentage))
 
     def set_total_epoch(self, total_epoch):
         self.total_epoch = total_epoch
 
     def __getitem__(self, index: int = 0) -> Sentence:
-        shuf_percentage = self.shuf_percentage*(0.01 + 0.99*(1 - min(1, 3*self.epoch/self.total_epoch)))
+        shuf_percentage = self.shuf_percentage*((1 - min(1, 2*self.epoch/self.total_epoch)))
 
         # if in memory, retrieve parsed sentence
         if self.in_memory:
@@ -255,6 +255,7 @@ class ColumnDataset_Shuf(ColumnDataset):
                 sentence = self._convert_lines_to_sentence(new_line)
 
             # set sentence context using partials
+            sentence.cal_entity_relation()
             sentence._position_in_dataset = (self, index)
 
         return sentence
