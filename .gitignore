@@ -7,4 +7,6 @@ flair/resources/taggers
 *.pyc
 *.json
 *.out
+*.gz
+
 eng*

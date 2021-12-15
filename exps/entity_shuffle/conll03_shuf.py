@@ -1,3 +1,11 @@
+'''
+The Chinese University of Hong Kong
+CSCI5640 Natural Language Processing
+Course Project
+Group:             Single Bell
+Members:           LU, Fanbin and XING, Jinbo and ZHANG, Yuechen
+PIC for this file: ZHANG Yuechen (zhangyc@link.cuhk.edu.hk)
+'''
 import logging
 import flair
 import random

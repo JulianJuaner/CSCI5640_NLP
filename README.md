@@ -1,8 +1,8 @@
 # NER Project for Single Bell
 ## Improve Named Entity Recognition with Entity-wise Relationship
 ### XING JInbo, LU Fanbin, ZHANG Yuechen
-### For FULL version of the code, please refer to [this site](https://github.com/JulianJuaner/CSCI5640_NLP).
-### This branch only includes main results in the report. For full experiments, please refer to other branches (julian/jinbo) of this repository
+#### For FULL version of the code, please refer to [this site](https://github.com/JulianJuaner/CSCI5640_NLP).
+#### This branch only includes main results in the report. For full experiments, please refer to other branches (julian/jinbo) of this repository. Feel free to tell us if you have any questions.
 ***
 # Data Preprocessing
 You can download CoNLL03 dataset from huggingface, or the official website. If you are using the huggingface format, you can convert the data to corpus by:
@@ -40,5 +40,3 @@ python exps/entity_shuffle/trainval.py
 ```
 python exps/entity_shuffle_ER/trainval.py
 ```
-***
-### Feel free to tell us if you have any questions.
