@@ -1,1 +1,12 @@
 flair/resources/taggers
+*.log
+*.pt
+*.png
+*.txt
+*.tsv
+*.pyc
+*.json
+*.out
+*.gz
+
+eng*
